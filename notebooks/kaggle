@@ -1,0 +1,68 @@
+import os
+from timeit import default_timer as timer
+from datetime import timedelta
+
+n_neighbors = 2000
+
+
+class Painting:
+
+    def __init__(self, id, orientation, tags):
+        self.id = id
+        self.orientation = orientation
+        self.tags = set(tags)
+        self.tag_number = len(self.tags)
+
+    def __str__(self):
+        return f'Id : {self.id}, Orientation : {self.orientation}, Tags : {self.tags}, Tag Number : {self.tag_number}'
+
+
+def process_file(file):
+    start = timer()
+
+    paintings = read_file(file)
+    paintings = sorted(paintings, key=lambda x: x.tag_number, reverse=True)
+    print(paintings)
+
+    with open(f'out/{file}.out', 'w') as out:
+        out.write(str(len(paintings)) + '\n')
+
+        current = paintings[0][1]
+        out.write(str(current.id) + '\n')
+        paintings.pop(0)
+        for i in range(len(paintings)):
+            top_n = paintings[0:n_neighbors]
+            best_index = None
+            best_score = 0
+            for index, painting in enumerate(top_n):
+                common = current.tags.intersection(painting.tags)
+                score1 = len(common)
+                score2 = len(current.tags)-len(common)
+                score3 = len(painting.tags)-len(common)
+                score = min(score1, score2, score3)
+                if score >= best_score:
+                    best_score = score
+                    best_index = index
+            current = paintings.pop(best_index)
+            out.write(str(current.id) + '\n')
+
+    end = timer()
+    print(f'{file} with {len(paintings)} processed in {timedelta(seconds=end-start)}')
+    
+
+def read_file(file):
+    paintings = [][]
+    with open('data/' + file) as file_in:
+        paintings_count = file_in.readline()
+        for i in range(int(paintings_count)):
+            paintings.append(get_painting_from_line(file_in.readline(), i))
+    return paintings
+
+
+def get_painting_from_line(line, id):
+    details = line.split()
+    return Painting(id, details[0][1], details[2:])
+
+
+for file in os.listdir('data'):
+    process_file(file)
